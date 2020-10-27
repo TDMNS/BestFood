@@ -8,8 +8,8 @@ import javafx.scene.layout.*;
 import javafx.scene.text.Font;
 import javafx.stage.Stage;
 import javafx.scene.control.Label;
-
-import java.util.concurrent.atomic.AtomicBoolean;
+import java.sql.*;
+import java.sql.Connection;
 
 public class Main extends Application {
 
@@ -92,7 +92,7 @@ public class Main extends Application {
             });
 
             buttonBill.setOnAction(value ->  {
-                if(product.hasIngridients()) {
+                if(product.hasIngredients()) {
                     CondimentDecorator dec = (CondimentDecorator)product;
                     System.out.println(dec.getDescription() + "  Your bill: " +  dec.cost());
                     helloLabelForSecondScreen.setText("Your ord: " + dec.getDescription() + ". Your bill: " +  dec.cost());
@@ -101,6 +101,9 @@ public class Main extends Application {
                     helloLabelForSecondScreen.setText("Your ord: " + product.getDescription() + ". Your bill: " +  product.cost());
                 }
 
+                InsertApp app = new InsertApp();
+                // insert three new rows
+                app.insert(helloLabelForSecondScreen.getText());
             });
 
 
@@ -158,22 +161,51 @@ public class Main extends Application {
         //Displaying the contents of the stage
         stage.show();
     }
-    public static void main(String args[]){
+    public static void main(String[] args){
         launch(args);
     }
+
+    public static class InsertApp {
+
+        private Connection connect() {
+            // SQLite connection string
+            String url = "jdbc:sqlite:C:/Users/773i/Desktop/SQLiteStudio-3.2.1 (1)/SQLiteStudio/Orders";
+            Connection conn = null;
+            try {
+                conn = DriverManager.getConnection(url);
+            } catch (SQLException e) {
+                System.out.println(e.getMessage());
+            }
+            return conn;
+        }
+
+        public void insert(String k_ord) {
+            String sql = "INSERT INTO Current_orders(k_ord, k_date) VALUES(?, datetime('now', 'localtime'))";
+
+            try (Connection conn = this.connect();
+                PreparedStatement pstmt = conn.prepareStatement(sql)) {
+                pstmt.setString(1, k_ord);
+                pstmt.executeUpdate();
+            } catch (SQLException e) {
+                System.out.println(e.getMessage());
+            }
+        }
+
+    }
+
 }
 
 
 
 abstract class Product {
+
     String description = "Unknown Product";
-    boolean ingredients = false;
 
     public String getDescription() {
         return description;
     }
 
-    public boolean hasIngridients() {
+    public boolean hasIngredients() {
         return false;
     }
 
@@ -214,7 +246,7 @@ class Meet extends CondimentDecorator {
     }
 
     @Override
-    public boolean hasIngridients() {
+    public boolean hasIngredients() {
         return true;
     }
 
@@ -235,7 +267,7 @@ class Cheese extends CondimentDecorator {
     }
 
     @Override
-    public boolean hasIngridients() {
+    public boolean hasIngredients() {
         return true;
     }
 
@@ -256,7 +288,7 @@ class Tomato extends CondimentDecorator {
     }
 
     @Override
-    public boolean hasIngridients() {
+    public boolean hasIngredients() {
         return true;
     }
 
@@ -277,7 +309,7 @@ class Ham extends CondimentDecorator {
     }
 
     @Override
-    public boolean hasIngridients() {
+    public boolean hasIngredients() {
         return true;
     }
 
