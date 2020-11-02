@@ -1,6 +1,9 @@
 package com.company;
 
 import javafx.application.Application;
+import javafx.beans.property.SimpleStringProperty;
+import javafx.beans.value.ObservableValue;
+import javafx.geometry.Insets;
 import javafx.geometry.Pos;
 import javafx.scene.Scene;
 import javafx.scene.control.Button;
@@ -9,13 +12,24 @@ import javafx.scene.text.Font;
 import javafx.stage.Stage;
 import javafx.scene.control.Label;
 import java.sql.*;
+import javafx.collections.ObservableList;
+import javafx.collections.FXCollections;
+import javafx.util.Callback;
 import java.sql.Connection;
+import java.sql.ResultSet;
+import javafx.scene.control.TableColumn;
+import javafx.scene.control.TableColumn.CellDataFeatures;
+import javafx.scene.control.TableView;
+
 
 public class Main extends Application {
 
         private Product product = null;  // При таком состоянии кнопки ингридиентов вообще по идее не должны
     // быть активны ибо их не к чему применить.
         Scene scene1;
+
+        private ObservableList<ObservableList> data;
+        private TableView table = new TableView();
 
     @Override
         public void start(Stage stage) {
@@ -50,6 +64,7 @@ public class Main extends Application {
             Button buttonTomato = new Button("Tomato");
             Button buttonHam = new Button("Ham");
             Button buttonBill = new Button("Bill");
+            Button buttonOrders = new Button("All orders");
 
             //Set actions for buttons
             buttonPizza.setOnAction(value ->  {
@@ -106,6 +121,77 @@ public class Main extends Application {
                 app.insert(helloLabelForSecondScreen.getText());
             });
 
+        buttonOrders.setOnAction(value -> {
+
+            String url = "jdbc:sqlite:C:/Users/773i/Desktop/SQLiteStudio-3.2.1 (1)/SQLiteStudio/Orders";
+
+            String SQL = "SELECT * from Current_orders";
+
+            data = FXCollections.observableArrayList();
+
+            final Label label = new Label("All orders");
+            label.setFont(new Font("Arial", 20));
+
+            table.setEditable(true);
+
+            try(Connection connect = DriverManager.getConnection(url);
+                PreparedStatement prepState = connect.prepareStatement(SQL)){
+
+                ResultSet rs = prepState.executeQuery();
+
+                for(int i = 0 ; i < rs.getMetaData().getColumnCount(); i++){
+                    //We are using non property style for making dynamic table
+                    final int j = i;
+                    TableColumn col = new TableColumn(rs.getMetaData().getColumnName(i + 1));
+                    col.setCellValueFactory(new Callback<CellDataFeatures<ObservableList,String>,ObservableValue<String>>(){
+                        public ObservableValue<String> call(CellDataFeatures<ObservableList, String> param) {
+                            return new SimpleStringProperty(param.getValue().get(j).toString());
+                        }
+                    });
+
+                    table.getColumns().addAll(col);
+                }
+
+                while(rs.next()){
+                    //Iterate Row
+                    ObservableList<String> row = FXCollections.observableArrayList();
+                    for(int i = 1 ; i <= rs.getMetaData().getColumnCount(); i++){
+                        //Iterate Column
+                        row.add(rs.getString(i));
+                    }
+
+                    data.add(row);
+                }
+
+            } catch (SQLException e){
+                System.out.println("Error! " + e);
+            }
+
+            table.setItems(data);
+
+            final VBox vbox = new VBox();
+            vbox.setSpacing(5);
+            vbox.setPadding(new Insets(10, 0, 0, 10));
+            vbox.getChildren().addAll(label, table);
+
+//            Label secondLabel = new Label("I'm a Label on new Window");
+
+            StackPane secondaryLayout = new StackPane();
+            secondaryLayout.getChildren().add(vbox);
+
+            Scene secondScene = new Scene(secondaryLayout, 900, 400);
+
+            // New window (Stage)
+            Stage newWindow = new Stage();
+            newWindow.setTitle("All orders");
+            newWindow.setScene(secondScene);
+
+            // Set position of second window, related to primary window.
+            newWindow.setX(stage.getX() + 75);
+            newWindow.setY(stage.getY() + 25);
+
+            newWindow.show();
+        });
 
         // layouts
             // buttons
@@ -118,7 +204,7 @@ public class Main extends Application {
         HBox.setHgrow(buttonBill, Priority.ALWAYS);
         buttonBill.setMaxWidth(Double.MAX_VALUE);
 
-            // labels
+        // labels
         HBox.setHgrow(helloLabel, Priority.ALWAYS);
         helloLabel.setMaxWidth(Double.MAX_VALUE);
 
@@ -144,7 +230,7 @@ public class Main extends Application {
 
         Region spacer1 = new Region();
         HBox hBox1 = new HBox(25,  buttonMeet, buttonCheese, buttonTomato, buttonHam,
-                buttonBill);
+                buttonBill, buttonOrders);
         VBox.setVgrow(spacer1, Priority.ALWAYS);
         spacer1.setMinHeight(15);
 
@@ -173,6 +259,7 @@ public class Main extends Application {
             Connection conn = null;
             try {
                 conn = DriverManager.getConnection(url);
+                System.out.println("Successful connect");
             } catch (SQLException e) {
                 System.out.println(e.getMessage());
             }
